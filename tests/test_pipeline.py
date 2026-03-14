@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from netsentry.detectors import run_all_detectors
-from netsentry.parsers import load_csv_events
+from netsentry.parsers import load_csv_events, load_events
 from netsentry.reports import build_summary
 
 
@@ -29,3 +29,12 @@ def test_thresholds_can_suppress_findings() -> None:
     )
 
     assert findings == []
+
+
+def test_zeek_conn_log_can_be_loaded() -> None:
+    sample_path = Path(__file__).resolve().parents[1] / "data" / "samples" / "sample_conn.log"
+    events = load_events(sample_path, input_format="zeek-conn")
+
+    assert len(events) == 6
+    assert events[0].protocol == "UDP"
+    assert events[1].src_ip == "10.0.0.5"

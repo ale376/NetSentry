@@ -4,13 +4,19 @@ import argparse
 from pathlib import Path
 
 from netsentry.detectors import run_all_detectors
-from netsentry.parsers import load_csv_events
+from netsentry.parsers import load_events
 from netsentry.reports import build_summary, write_csv_report, write_json_report, write_text_report
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="NetSentry network anomaly detector")
     parser.add_argument("--input", required=True, help="Path to CSV traffic log")
+    parser.add_argument(
+        "--input-format",
+        choices=["csv", "zeek-conn"],
+        default="csv",
+        help="Input log format",
+    )
     parser.add_argument(
         "--report-format",
         choices=["json", "txt", "csv"],
@@ -43,7 +49,7 @@ def main() -> int:
     if args.spike_threshold < 1 or args.spike_window < 1 or args.port_threshold < 1 or args.talker_threshold < 1:
         raise SystemExit("All threshold values must be positive integers.")
 
-    events = load_csv_events(args.input)
+    events = load_events(args.input, input_format=args.input_format)
     findings = run_all_detectors(
         events,
         spike_threshold=args.spike_threshold,
@@ -51,7 +57,7 @@ def main() -> int:
         unusual_port_threshold=args.port_threshold,
         talker_threshold=args.talker_threshold,
     )
-    summary = build_summary(events, findings, source_path=str(Path(args.input).resolve()))
+    summary = build_summary(events, findings, source_path=f"{Path(args.input).resolve()} ({args.input_format})")
 
     suffix = args.report_format
     output_path = Path(args.output) if args.output else Path(f"report.{suffix}")

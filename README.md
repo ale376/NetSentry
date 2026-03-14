@@ -5,6 +5,7 @@ NetSentry is a defensive network traffic anomaly detection and security reportin
 ## MVP features
 
 - Parse normalized CSV traffic logs
+- Parse Zeek `conn.log` style connection logs
 - Detect traffic spikes in short time windows
 - Detect repeated use of unusual destination ports
 - Flag high-volume source IPs
@@ -29,6 +30,12 @@ timestamp,src_ip,dst_ip,src_port,dst_port,protocol,bytes_sent
 ```
 
 `timestamp` should be ISO-8601 formatted, for example `2026-03-13T10:00:00`.
+
+For Zeek `conn.log`, use:
+
+```bash
+PYTHONPATH=src python src/main.py --input data/samples/sample_conn.log --input-format zeek-conn --report-format json
+```
 
 ## Run locally
 
