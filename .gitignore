@@ -13,3 +13,4 @@ report*.csv
 sample_report.txt
 findings.csv
 threshold_report.txt
+summary.csv

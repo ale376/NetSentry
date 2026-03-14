@@ -9,6 +9,7 @@ NetSentry is a defensive network traffic anomaly detection and security reportin
 - Detect repeated use of unusual destination ports
 - Flag high-volume source IPs
 - Generate JSON, TXT, or CSV security reports
+- Export a separate CSV summary for presentation-ready metrics
 - Tune thresholds directly from the CLI
 
 ## Project structure
@@ -49,6 +50,7 @@ For a CSV findings export with custom thresholds:
 PYTHONPATH=src python src/main.py \
   --input data/samples/sample_traffic.csv \
   --report-format csv \
+  --summary-output summary.csv \
   --spike-threshold 4 \
   --talker-threshold 4 \
   --port-threshold 2

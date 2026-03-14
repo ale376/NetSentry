@@ -5,7 +5,14 @@ from pathlib import Path
 
 from netsentry.detectors import run_all_detectors
 from netsentry.parsers import load_csv_events
-from netsentry.reports import build_summary, write_csv_report, write_json_report, write_text_report
+from netsentry.reports import (
+    build_summary,
+    format_console_summary,
+    write_csv_report,
+    write_json_report,
+    write_summary_csv,
+    write_text_report,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,6 +27,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output",
         help="Output report path. Defaults to report.json, report.txt, or report.csv in the current directory.",
+    )
+    parser.add_argument(
+        "--summary-output",
+        help="Optional CSV path for summary metrics.",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress console summary output.",
     )
     parser.add_argument("--spike-threshold", type=int, default=5, help="Minimum connections in a window to flag a spike")
     parser.add_argument("--spike-window", type=int, default=60, help="Spike detection time window in seconds")
@@ -63,8 +79,15 @@ def main() -> int:
     else:
         write_text_report(output_path, summary, findings)
 
-    print(f"Processed {len(events)} events and found {len(findings)} anomalies.")
-    print(f"Report written to {output_path}")
+    if args.summary_output:
+        write_summary_csv(args.summary_output, summary)
+
+    if not args.quiet:
+        print(format_console_summary(summary, findings))
+        print("")
+        print(f"Detailed report written to {output_path}")
+        if args.summary_output:
+            print(f"Summary CSV written to {args.summary_output}")
     return 0
 
 

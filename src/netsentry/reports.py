@@ -58,3 +58,39 @@ def write_csv_report(path: str | Path, findings: list[dict]) -> None:
         writer.writeheader()
         for finding in findings:
             writer.writerow({name: finding.get(name, "") for name in fieldnames})
+
+
+def write_summary_csv(path: str | Path, summary: dict) -> None:
+    rows = [
+        {"metric": "source_path", "value": summary["source_path"]},
+        {"metric": "total_events", "value": summary["total_events"]},
+        {"metric": "total_findings", "value": summary["total_findings"]},
+    ]
+    rows.extend(
+        {"metric": f"protocol_{protocol}", "value": count}
+        for protocol, count in summary["protocols"].items()
+    )
+    rows.extend(
+        {"metric": f"severity_{severity}", "value": count}
+        for severity, count in summary["severity_breakdown"].items()
+    )
+
+    with Path(path).open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["metric", "value"])
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def format_console_summary(summary: dict, findings: list[dict]) -> str:
+    lines = [
+        "NetSentry Summary",
+        f"Source: {summary['source_path']}",
+        f"Events: {summary['total_events']}",
+        f"Findings: {summary['total_findings']}",
+        f"Severity breakdown: {summary['severity_breakdown'] or 'none'}",
+    ]
+    if findings:
+        lines.append("Top findings:")
+        for finding in findings[:3]:
+            lines.append(f"- [{finding['severity'].upper()}] {finding['reason']}")
+    return "\n".join(lines)

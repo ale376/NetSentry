@@ -2,7 +2,7 @@ from pathlib import Path
 
 from netsentry.detectors import run_all_detectors
 from netsentry.parsers import load_csv_events
-from netsentry.reports import build_summary
+from netsentry.reports import build_summary, format_console_summary
 
 
 def test_pipeline_detects_anomalies() -> None:
@@ -16,6 +16,7 @@ def test_pipeline_detects_anomalies() -> None:
     assert summary["total_findings"] == len(findings)
     assert any(finding["type"] == "unusual_port_usage" for finding in findings)
     assert any(finding["type"] == "traffic_spike" for finding in findings)
+    assert "NetSentry Summary" in format_console_summary(summary, findings)
 
 
 def test_thresholds_can_suppress_findings() -> None:
