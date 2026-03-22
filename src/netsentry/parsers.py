@@ -3,8 +3,11 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from pathlib import Path
+import re
 
 from .models import TrafficEvent
+
+WIRESHARK_PORT_PATTERN = re.compile(r"^\s*(\d+)\s+>\s+(\d+)\b")
 
 
 def _parse_int(value: str, default: int = 0) -> int:
@@ -15,26 +18,65 @@ def _parse_int(value: str, default: int = 0) -> int:
 
 
 def _parse_timestamp(value: str) -> datetime:
-    # Expect ISO timestamps in the MVP sample files.
-    return datetime.fromisoformat(value)
+    # Python 3.10 only supports up to 6 fractional second digits.
+    normalized = value.strip()
+    if "." in normalized:
+        head, tail = normalized.split(".", 1)
+        fractional = "".join(ch for ch in tail if ch.isdigit())
+        suffix = tail[len(fractional) :]
+        normalized = f"{head}.{fractional[:6]}{suffix}"
+    return datetime.fromisoformat(normalized)
+
+
+def _parse_ports_from_info(value: str) -> tuple[int, int]:
+    match = WIRESHARK_PORT_PATTERN.match(value or "")
+    if not match:
+        return 0, 0
+    return int(match.group(1)), int(match.group(2))
+
+
+def _build_event_from_netsentry_row(row: dict[str, str]) -> TrafficEvent:
+    return TrafficEvent(
+        timestamp=_parse_timestamp(row["timestamp"]),
+        src_ip=row["src_ip"],
+        dst_ip=row["dst_ip"],
+        src_port=_parse_int(row.get("src_port")),
+        dst_port=_parse_int(row.get("dst_port")),
+        protocol=row.get("protocol", "UNKNOWN").upper(),
+        bytes_sent=_parse_int(row.get("bytes_sent")),
+    )
+
+
+def _build_event_from_wireshark_row(row: dict[str, str]) -> TrafficEvent:
+    src_port, dst_port = _parse_ports_from_info(row.get("Info", ""))
+    return TrafficEvent(
+        timestamp=_parse_timestamp(row["Time"].replace(" ", "T", 1)),
+        src_ip=row["Source"],
+        dst_ip=row["Destination"],
+        src_port=src_port,
+        dst_port=dst_port,
+        protocol=row.get("Protocol", "UNKNOWN").upper(),
+        bytes_sent=_parse_int(row.get("Length")),
+    )
 
 
 def load_csv_events(path: str | Path) -> list[TrafficEvent]:
     events: list[TrafficEvent] = []
     with Path(path).open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
-        for row in reader:
-            events.append(
-                TrafficEvent(
-                    timestamp=_parse_timestamp(row["timestamp"]),
-                    src_ip=row["src_ip"],
-                    dst_ip=row["dst_ip"],
-                    src_port=_parse_int(row.get("src_port")),
-                    dst_port=_parse_int(row.get("dst_port")),
-                    protocol=row.get("protocol", "UNKNOWN").upper(),
-                    bytes_sent=_parse_int(row.get("bytes_sent")),
-                )
+        fieldnames = set(reader.fieldnames or [])
+        if {"timestamp", "src_ip", "dst_ip", "protocol", "bytes_sent"}.issubset(fieldnames):
+            row_builder = _build_event_from_netsentry_row
+        elif {"Time", "Source", "Destination", "Protocol", "Length", "Info"}.issubset(fieldnames):
+            row_builder = _build_event_from_wireshark_row
+        else:
+            raise ValueError(
+                "Unsupported CSV format. Expected NetSentry columns "
+                "(timestamp, src_ip, dst_ip, src_port, dst_port, protocol, bytes_sent) "
+                "or Wireshark export columns (Time, Source, Destination, Protocol, Length, Info)."
             )
+        for row in reader:
+            events.append(row_builder(row))
     return events
 
 

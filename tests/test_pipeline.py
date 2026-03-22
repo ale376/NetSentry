@@ -38,3 +38,11 @@ def test_zeek_conn_log_can_be_loaded() -> None:
     assert len(events) == 6
     assert events[0].protocol == "UDP"
     assert events[1].src_ip == "10.0.0.5"
+
+
+def test_raw_wireshark_csv_can_be_loaded() -> None:
+    sample_path = Path(__file__).resolve().parents[1] / "data" / "samples" / "traffic_export_converted.csv"
+    events = load_csv_events(sample_path)
+
+    assert len(events) > 100
+    assert events[0].protocol in {"NTP", "TCP", "ARP", "MDNS", "DNS", "TLSV1.3", "TLSV1.2", "ICMPV6"}

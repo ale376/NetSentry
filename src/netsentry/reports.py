@@ -25,11 +25,19 @@ def build_summary(events: list[TrafficEvent], findings: list[dict], source_path:
 
 
 def write_json_report(path: str | Path, summary: dict, findings: list[dict]) -> None:
-    payload = {"summary": summary, "findings": findings}
-    Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    Path(path).write_text(render_json_report(summary, findings), encoding="utf-8")
 
 
 def write_text_report(path: str | Path, summary: dict, findings: list[dict]) -> None:
+    Path(path).write_text(render_text_report(summary, findings), encoding="utf-8")
+
+
+def render_json_report(summary: dict, findings: list[dict]) -> str:
+    payload = {"summary": summary, "findings": findings}
+    return json.dumps(payload, indent=2)
+
+
+def render_text_report(summary: dict, findings: list[dict]) -> str:
     lines = [
         "NetSentry Security Report",
         "",
@@ -48,7 +56,7 @@ def write_text_report(path: str | Path, summary: dict, findings: list[dict]) -> 
             lines.append(
                 f"{index}. [{finding['severity'].upper()}] {finding['type']}: {finding['reason']}"
             )
-    Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return "\n".join(lines) + "\n"
 
 
 def write_csv_report(path: str | Path, findings: list[dict]) -> None:

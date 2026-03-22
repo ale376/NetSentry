@@ -3,9 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from netsentry.detectors import run_all_detectors
-from netsentry.parsers import load_events
-from netsentry.reports import build_summary, write_csv_report, write_json_report, write_text_report
+from netsentry.analysis import analyze_file
+from netsentry.reports import write_csv_report, write_json_report, write_text_report
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -49,15 +48,14 @@ def main() -> int:
     if args.spike_threshold < 1 or args.spike_window < 1 or args.port_threshold < 1 or args.talker_threshold < 1:
         raise SystemExit("All threshold values must be positive integers.")
 
-    events = load_events(args.input, input_format=args.input_format)
-    findings = run_all_detectors(
-        events,
+    events, findings, summary = analyze_file(
+        args.input,
+        input_format=args.input_format,
         spike_threshold=args.spike_threshold,
         spike_window_seconds=args.spike_window,
         unusual_port_threshold=args.port_threshold,
         talker_threshold=args.talker_threshold,
     )
-    summary = build_summary(events, findings, source_path=f"{Path(args.input).resolve()} ({args.input_format})")
 
     suffix = args.report_format
     output_path = Path(args.output) if args.output else Path(f"report.{suffix}")

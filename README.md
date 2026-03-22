@@ -44,6 +44,25 @@ cd /Users/alekhyamysore/Documents/New\ project/NetSentry
 PYTHONPATH=src python src/main.py --input data/samples/sample_traffic.csv --report-format json
 ```
 
+To convert a Wireshark CSV export into the input format NetSentry expects:
+
+```bash
+PYTHONPATH=src python src/convert_wireshark_csv.py \
+  --input /path/to/traffic_export.csv \
+  --output converted_traffic.csv
+```
+
+## Run the UI
+
+```bash
+cd /Users/alekhyamysore/Documents/New\ project/NetSentry
+source .venv/bin/activate
+pip install -r requirements.txt
+PYTHONPATH=src streamlit run streamlit_app.py
+```
+
+The UI lets you upload a log file, adjust thresholds, review findings, and download JSON or TXT reports.
+
 For a text report:
 
 ```bash
